@@ -131,6 +131,7 @@ export interface PublicInfo {
   sitename: string
   theme: string
   theme_settings: Record<string, unknown>
+  visitor_audit_enabled?: boolean
 }
 
 /** 版本信息 */
@@ -274,6 +275,18 @@ export interface AuditLogEntry {
 export interface AuditLogsResponse {
   logs: AuditLogEntry[]
   total: number
+}
+
+export interface VisitorAuditEventParams extends Record<string, unknown> {
+  event: string
+  path?: string
+  route?: string
+  target?: string
+  detail?: Record<string, unknown>
+}
+
+export interface VisitorAuditEventResponse {
+  status: 'success' | 'disabled' | 'rate_limited' | string
 }
 
 export interface MetricDefinition {
@@ -918,8 +931,8 @@ export class KomariRpc {
 
   // ==================== Admin 方法（需登录权限） ====================
 
-  async getAuditLogs(limit?: string, page?: string, signal?: AbortSignal): Promise<AuditLogsResponse> {
-    return this.client.call<AuditLogsResponse>('admin:getLogs', { limit, page }, signal)
+  async getAuditLogs(limit?: string, page?: string, msgType?: string, signal?: AbortSignal): Promise<AuditLogsResponse> {
+    return this.client.call<AuditLogsResponse>('admin:getLogs', { limit, page, msg_type: msgType }, signal)
   }
 
   // ==================== Public 方法（主题/公开页优先使用） ====================
@@ -934,6 +947,10 @@ export class KomariRpc {
 
   async getPublicSettings(): Promise<PublicInfo> {
     return this.client.call<PublicInfo>('public:getPublicSettings')
+  }
+
+  async recordPublicVisitorEvent(params: VisitorAuditEventParams, signal?: AbortSignal): Promise<VisitorAuditEventResponse> {
+    return this.client.call<VisitorAuditEventResponse>('public:recordVisitorEvent', params, signal)
   }
 
   async getPublicVersion(): Promise<VersionInfo> {

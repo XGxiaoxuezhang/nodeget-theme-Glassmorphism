@@ -1,9 +1,8 @@
 <script setup lang="ts">
-/* eslint-disable unused-imports/no-unused-vars */
 import type { MetricSeries, PingMetricTaskStats, PingRecord, PingTaskInfo } from '@/utils/rpc'
 import { Icon } from '@iconify/vue'
 import dayjs from 'dayjs'
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 import VChart from 'vue-echarts'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
@@ -13,8 +12,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PING_RECORD_MAX_COUNT } from '@/constants/load'
 import { loadPingRecordsWithTasks } from '@/services/history.service'
+import { loadPingMetricStats, queryMetrics } from '@/services/metrics.service'
 import { useAppStore } from '@/stores/app'
-import { isPingMetric, normalizeMetricSeriesList, pingTaskId, pingTaskName } from '@/utils/metricSeries'
+import { ACCESSIBLE_LINE_TYPES, getChartSeriesPalette } from '@/utils/chartPalette'
+import { isPingMetric, normalizeMetricSeriesList, PING_LATENCY_METRIC, pingTaskId, pingTaskName } from '@/utils/metricSeries'
 import { cutPeakValues, interpolateNullsLinear } from '@/utils/recordHelper'
 import '@/utils/echarts' // 共享 ECharts 配置
 
@@ -43,17 +44,11 @@ const chartThemeColors = computed(() => ({
   crosshairColor: isDark.value ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
 }))
 
-// 优化后的图表配色方案（多任务时使用）
-const chartColors = [
-  '#FF6B6B', // 珊瑚红
-  '#4ECDC4', // 青绿色
-  '#A78BFA', // 紫罗兰
-  '#60A5FA', // 天蓝色
-  '#FFB347', // 琥珀黄
-  '#F472B6', // 粉红色
-  '#34D399', // 翠绿色
-  '#FB923C', // 橙色
-]
+const chartColors = reactive(getChartSeriesPalette(appStore.colorVisionFriendly))
+
+watchEffect(() => {
+  chartColors.splice(0, chartColors.length, ...getChartSeriesPalette(appStore.colorVisionFriendly))
+})
 
 // 从 publicSettings 获取记录保留时间
 const maxPingRecordPreserveTime = computed(() => appStore.publicSettings?.ping_record_preserve_time || 168)
@@ -160,15 +155,6 @@ const legacyCustomRangeFallback = ref(false)
 
 // 任务选择
 const selectedTaskIds = ref<number[]>([])
-const taskTypeFilter = ref<'all' | 'ping' | 'tcp_ping'>('all')
-const taskSearch = ref('')
-const visibleTasks = computed(() => tasks.value.filter((task) => {
-  const name = task.name.toLowerCase()
-  const typeMatch = taskTypeFilter.value === 'all'
-    || (taskTypeFilter.value === 'tcp_ping' && (name.includes('tcp') || name.includes('tcping')))
-    || (taskTypeFilter.value === 'ping' && !name.includes('tcp') && !name.includes('tcping'))
-  return typeMatch && (!taskSearch.value.trim() || name.includes(taskSearch.value.trim().toLowerCase()))
-}))
 const cutPeak = ref(false)
 const isTouchTooltipMode = ref(false)
 const activeTaskTooltipId = ref<number | null>(null)
@@ -273,32 +259,64 @@ function buildMetricRecords(seriesList: MetricSeries[]): PingRecord[] {
 
 async function loadMetricPingPayload(nodeUuid: string): Promise<{ records: PingRecord[], tasks: PingTaskInfo[] } | null> {
   const range = appliedCustomRange.value
-  const hours = isCustomRange.value && range ? range.hours : selectedHours.value
-  const result = await loadPingRecordsWithTasks(hours, PING_RECORD_MAX_COUNT, nodeUuid)
-  if (!result.records.length)
+  const metricRangeParams = isCustomRange.value && range
+    ? { start: range.start.toDate().toISOString(), end: range.end.toDate().toISOString() }
+    : { hours: selectedHours.value }
+
+  const [statsResult, metricsResult] = await Promise.allSettled([
+    loadPingMetricStats({ entity_id: nodeUuid, ...metricRangeParams, max_points: PING_RECORD_MAX_COUNT }),
+    queryMetrics({
+      metric_keys: [PING_LATENCY_METRIC],
+      entity_id: nodeUuid,
+      ...metricRangeParams,
+      downsample: true,
+      fill_empty: true,
+      max_points: PING_RECORD_MAX_COUNT,
+      aggregation: 'avg',
+    }),
+  ])
+
+  const metricStats = statsResult.status === 'fulfilled'
+    ? (statsResult.value.stats ?? []).filter(stat => stat.entity_id === nodeUuid)
+    : []
+  const metricRecords = metricsResult.status === 'fulfilled'
+    ? buildMetricRecords(metricsResult.value.series)
+    : []
+
+  const metricTaskIds = new Set(metricRecords.map(record => record.task_id))
+  const exactStatTaskIds = new Set(
+    metricStats
+      .filter(stat => stat.total > 0 && !stat.loss_approximate && Number.isFinite(stat.loss))
+      .map(stat => normalizeMetricTaskId(stat.task_id)),
+  )
+  if (!metricRecords.length || [...metricTaskIds].some(taskId => !exactStatTaskIds.has(taskId)))
     return null
 
-  const byTask = new Map<number, PingRecord[]>()
-  for (const record of result.records) {
-    const list = byTask.get(record.task_id) || []
-    list.push(record)
-    byTask.set(record.task_id, list)
+  const taskMap = new Map<number, PingTaskInfo>()
+  for (const stat of metricStats) {
+    const task = normalizeMetricTask(stat)
+    taskMap.set(task.id, task)
   }
 
-  const tasks = result.tasks.map((task) => {
-    const records = byTask.get(task.id) || []
-    const values = records.map(record => record.value).filter(value => value >= 0)
-    const avg = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : undefined
-    const min = values.length ? Math.min(...values) : undefined
-    const max = values.length ? Math.max(...values) : undefined
-    const latest = values.at(-1)
-    const gaps = records.slice(1).map((record, index) => dayjs(record.time).diff(dayjs(records[index]?.time), 'second')).filter(value => value > 0)
-    const interval = gaps.length ? Math.round(gaps.reduce((sum, value) => sum + value, 0) / gaps.length) : 20
-    const lost = records.filter(record => record.value < 0).length
-    return { ...task, interval, avg, min, max, latest, total: records.length, valid: values.length, loss: records.length ? lost / records.length * 100 : 0, loss_approximate: false }
-  })
+  for (const series of normalizeMetricSeriesList(
+    metricsResult.status === 'fulfilled' ? metricsResult.value.series : [],
+  ).filter(isPingMetric)) {
+    const taskId = normalizeMetricTaskId(pingTaskId(series))
+    if (!taskId || taskMap.has(taskId))
+      continue
 
-  return { records: result.records, tasks }
+    taskMap.set(taskId, {
+      id: taskId,
+      name: pingTaskName(series) || `Task ${taskId}`,
+      interval: series.interval_seconds ?? 0,
+      loss: 0,
+    })
+  }
+
+  return {
+    records: metricRecords,
+    tasks: [...taskMap.values()],
+  }
 }
 
 // ==================== 数据获取 ====================
@@ -539,11 +557,11 @@ function toggleTask(taskId: number) {
 }
 
 function showAllTasks() {
-  selectedTaskIds.value = visibleTasks.value.map(t => t.id)
+  selectedTaskIds.value = tasks.value.map(t => t.id)
 }
 
 function hideAllTasks() {
-  selectedTaskIds.value = selectedTaskIds.value.filter(id => visibleTasks.value.every(task => task.id !== id))
+  selectedTaskIds.value = []
 }
 
 // ==================== 图表配置 ====================
@@ -584,8 +602,11 @@ const pingChartOption = computed(() => {
   const hours = selectedHours.value
 
   // 构建 series，确保颜色与卡片一致
-  const series = taskList.map((task) => {
+  const series = taskList.map((task, index) => {
     const color = getTaskColor(task.id)
+    const lineType = appStore.colorVisionFriendly
+      ? (ACCESSIBLE_LINE_TYPES[index % ACCESSIBLE_LINE_TYPES.length] ?? 'solid')
+      : 'solid'
     return {
       name: task.name,
       type: 'line' as const,
@@ -593,7 +614,7 @@ const pingChartOption = computed(() => {
       smooth: cutPeak.value ? 0.6 : 0.1,
       showSymbol: false,
       connectNulls: false,
-      lineStyle: { width: 1.5, color, cap: 'round' as const },
+      lineStyle: { width: 1.5, color, cap: 'round' as const, type: lineType },
       itemStyle: { color }, // 确保 symbol 颜色一致
     }
   })
@@ -740,22 +761,7 @@ onBeforeUnmount(() => {
             </TabsTrigger>
           </TabsList>
         </div>
-        <div class="flex flex-wrap gap-2 items-center">
-          <Input v-model="taskSearch" placeholder="搜索线路" class="h-7 w-36 bg-background/50 text-xs" />
-          <Tabs v-model="taskTypeFilter">
-            <TabsList class="h-7 bg-background/50">
-              <TabsTrigger value="all" class="h-6 text-xs">
-                全部
-              </TabsTrigger>
-              <TabsTrigger value="ping" class="h-6 text-xs">
-                Ping
-              </TabsTrigger>
-              <TabsTrigger value="tcp_ping" class="h-6 text-xs">
-                TCPing
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <div class="md:flex-1" />
         <div class="flex gap-2 items-center">
           <Button
             variant="ghost" size="xs" class="h-7 rounded-sm bg-background/50 hover:bg-background border-none"
@@ -820,11 +826,11 @@ onBeforeUnmount(() => {
       <template v-else>
         <!-- 最新值统计卡片（可点击切换选中状态） -->
         <div
-          v-if="visibleTasks.length > 0" class="gap-3 grid"
+          v-if="latestValues.length > 0" class="gap-3 grid"
           style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))"
         >
           <div
-            v-for="task in latestValues.filter(task => visibleTasks.some(visible => visible.id === task.id))" :key="task.id"
+            v-for="task in latestValues" :key="task.id"
             class="p-2 rounded-md bg-background/50 hover:bg-background hover:shadow-[0_0_0_2px] hover:shadow-primary/10 flex gap-3 cursor-pointer select-none transition-all items-center"
             :class="[!selectedTaskIds.includes(task.id) && 'opacity-30']"
             :onmouseover="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.borderColor = task.color)"
