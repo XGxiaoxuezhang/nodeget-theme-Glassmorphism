@@ -1,76 +1,24 @@
-<div align="center">
+# NodeGet Glassmorphism
 
-# 🌌 NodeGet Glassmorphism
+一个给 NodeGet 用的公开监控主题。界面沿用了 Glassmorphism 的毛玻璃风格，数据部分改成通过 NodeGet WebSocket JSON-RPC 获取。
 
-## NodeGet 的玻璃拟态公开监控主题
+## 主要功能
 
-保留 Glassmorphism 的毛玻璃界面、节点卡片、地球与详情图表，同时将数据层适配到 NodeGet JSON-RPC。项目面向公开只读探针，不提供 NodeGet 管理后台、命令执行或 WebShell。
-
-[![NodeGet](https://img.shields.io/badge/NodeGet-adapter-10b981?style=for-the-badge)](https://nodeget.com/)
-[![Vue](https://img.shields.io/badge/Vue-3-42b883?style=for-the-badge&logo=vue.js)](https://vuejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-7-646cff?style=for-the-badge&logo=vite)](https://vite.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-v4-38bdf8?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
-[![Bun](https://img.shields.io/badge/Bun-%3E%3D1.2-000000?style=for-the-badge&logo=bun)](https://bun.sh/)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
-
-**维护者：** [XGxiaoxuezhang](https://github.com/XGxiaoxuezhang) · **仓库：** [XGxiaoxuezhang/nodeget-theme-Glassmorphism](https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism)
-
-</div>
-
----
-
-## 项目定位
-
-| 项目     | 说明                                   |
-| :------- | :------------------------------------- |
-| 主题名称 | NodeGet Glassmorphism                  |
-| 目标后端 | NodeGet Server                         |
-| 前端技术 | Vue 3 + Vite + Pinia + Tailwind CSS v4 |
-| 主题类型 | NodeGet 公开只读状态页                 |
-| 视觉基础 | Glassmorphism 毛玻璃界面               |
-| 构建方式 | Bun                                    |
-
-本项目不是 NodeGet 管理后台。管理、Agent 配置、任务创建、终端和更新操作请使用 NodeGet 官方 Dashboard。
-
-## 功能
-
-### NodeGet 数据适配
-
-- 节点列表和静态信息
-- 实时 CPU、内存、Swap、磁盘、Load、网络、连接数和进程数
+- 节点列表、节点详情和实时状态
+- CPU、内存、Swap、磁盘、负载、网络、连接数、进程数
 - 真实历史负载曲线
-- Ping / TCPing 历史数据
-- 平均、最小、最大、最新延迟和丢包统计
-- Ping / TCPing 类型筛选和线路搜索
-- 首页在线节点、平均 CPU、内存、硬盘、流量和连接总览
-- NodeGet KV 元数据：厂商、城市、国家、ASN、标签、价格、到期时间和流量额度
+- Ping / TCPing 历史和统计
+- 延迟线路搜索与 Ping/TCPing 筛选
+- 首页节点、流量、资源等汇总卡片
+- 地区、标签、厂商和 ASN 展示
+- NodeGet KV 中的价格、到期时间、流量额度等元数据
+- 玻璃拟态、地球视图、详情图表和响应式布局
 
-### 公开探针安全边界
+## 安全说明
 
-公开页面只使用最小只读 Token，适配层不会调用管理能力：
+这是公开只读探针，不是 NodeGet 管理后台。
 
-- 不提供后台管理入口
-- 不执行命令，不提供 WebShell
-- 不创建或修改任务、定时任务和配置
-- 不调用 `read_config`、`edit_config`、`self_update` 等管理能力
-- 不把真实 Token、密码或 SSH 凭据提交到仓库
-- 不进行前端 IP/GeoIP 查询，不把节点 IP 发送给第三方 GeoIP 服务
-- ASN 和厂商信息只使用脱敏 KV 元数据，不显示节点 IP
-
-## NodeGet 公开 Token 权限建议
-
-建议为公开主题单独创建只读 Token，只授予以下范围：
-
-```text
-node_get: list_all_agent_uuid
-static_monitoring: read(cpu/system/gpu)
-dynamic_monitoring_summary: read
-task: read(ping/tcp_ping)
-kv: read(metadata_*)
-kv: read(traffic_*)
-```
-
-不要授予公开 Token 以下能力：
+公开 Token 只需要监控数据、Ping/TCPing、节点列表和 `metadata_*` / `traffic_*` 的读取权限。不要给公开 Token 授予以下权限：
 
 ```text
 execute
@@ -79,13 +27,34 @@ read_config
 edit_config
 self_update
 http_request
-crontab write/delete
-kv write/delete
+crontab 写入或删除
+KV 写入或删除
 ```
+
+主题不会在前端查询节点 IP，也不会把节点 IP 发送给第三方 GeoIP 服务。厂商、城市、国家和 ASN 使用脱敏 KV 字段：
+
+```text
+metadata_provider
+metadata_city
+metadata_country
+metadata_asn
+metadata_public_remark
+```
+
+例如：
+
+```text
+metadata_provider = Oracle Cloud
+metadata_city = Montreal
+metadata_country = CA
+metadata_asn = AS31898
+```
+
+这些字段不需要写 IP，也不需要修改节点名称。
 
 ## 配置
 
-部署时在 `public/config.json` 提供配置文件。该文件已加入 `.gitignore`，不要提交真实 Token：
+部署时创建 `public/config.json`。该文件不会提交到仓库，真实 Token 不要放进 Git：
 
 ```json
 {
@@ -104,38 +73,21 @@ kv write/delete
 }
 ```
 
-### 脱敏厂商元数据
+## 从 NodeGet 主题管理安装
 
-主题会自动读取以下 NodeGet KV 键；没有设置时不会报错：
-
-```text
-metadata_provider
-metadata_city
-metadata_country
-metadata_asn
-metadata_public_remark
-```
-
-示例：
+NodeGet 支持从远程 GitHub 仓库安装和更新符合主题规范的主题。在主题管理界面填写：
 
 ```text
-metadata_provider = Oracle Cloud
-metadata_city = Montreal
-metadata_country = CA
-metadata_asn = AS31898
+https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism
 ```
 
-这些字段只用于显示厂商、城市、国家和 ASN，不应写入 IPv4、IPv6、密码或其他敏感信息。节点名称不需要修改。
+NodeGet 会读取仓库中的主题清单和 Release 包。首次安装时按页面提示创建或选择公开只读 Token；更新时可以继续使用已有配置。
 
-## 安装与部署
+也可以在 Releases 页面下载 zip 手动安装：
 
-1. 使用 Bun 构建主题。
-2. 将构建产物中的 `dist/` 上传到 NodeGet 静态主题目录。
-3. 将部署环境自己的 `public/config.json` 放入静态目录。
-4. 在 NodeGet Dashboard 中将主题设置为 HTTP root。
-5. 使用浏览器强制刷新确认页面和 WebSocket 正常。
+<https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism/releases>
 
-公开探针的管理入口使用 NodeGet 官方 Dashboard，不要把管理 Token 放入前端配置。
+不要下载 GitHub 的源码压缩包，下载带有 `nodeget-theme-Glassmorphism-build-` 前缀的主题 zip。
 
 ## 本地开发
 
@@ -149,14 +101,14 @@ bun run build
 bun run preview
 ```
 
-构建输出包括：
+构建会生成：
 
 ```text
 dist/
 nodeget-theme-Glassmorphism-build-<short-sha>.zip
 ```
 
-发布包固定包含：
+zip 内的布局固定为：
 
 ```text
 komari-theme.json
@@ -164,21 +116,9 @@ preview.png
 dist/
 ```
 
-## 数据调用链
+## 数据接口
 
-```text
-Vue Component
-    ↓
-Composable
-    ↓
-Service
-    ↓
-RequestManager / CacheService
-    ↓
-NodeGet WebSocket JSON-RPC
-```
-
-主要 NodeGet 方法：
+适配器主要使用以下 NodeGet 方法：
 
 ```text
 nodeget-server_list_all_agent_uuid
@@ -189,12 +129,10 @@ kv_get_multi_value
 task_query
 ```
 
-## 开源说明
+## 开源信息
 
-本项目是 NodeGet 专用的 Glassmorphism 公开监控主题，保留原始 Glassmorphism 项目的视觉设计和 MIT License，并由 [XGxiaoxuezhang](https://github.com/XGxiaoxuezhang) 维护。
-
-上游参考：<https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism>
-
-## License
-
-[MIT](LICENSE)
+- 仓库：<https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism>
+- 维护者：<https://github.com/XGxiaoxuezhang>
+- NodeGet：<https://nodeget.com/>
+- 上游参考：<https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism>
+- License：MIT
