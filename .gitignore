@@ -46,4 +46,5 @@ public/config.json
 
 # Theme build output
 komari-theme-*.zip
+nodeget-theme-*.zip
 bun.lock
