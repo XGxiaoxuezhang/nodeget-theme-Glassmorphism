@@ -50,7 +50,10 @@ cpSync(overrideCss, resolve(targetDir, 'glass-admin.css'))
 
 let commit = 'unknown'
 try {
-  commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: sourceRoot, encoding: 'utf8' }).trim()
+  commit = execFileSync('git', ['-c', `safe.directory=${sourceRoot}`, 'rev-parse', 'HEAD'], {
+    cwd: sourceRoot,
+    encoding: 'utf8',
+  }).trim()
 }
 catch {}
 
