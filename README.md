@@ -21,6 +21,8 @@
 
 ## 项目定位
 
+- 当前分支：`feat/nodeget-adapter`，用于 NodeGet Glassmorphism 的独立维护。
+
 | 项目     | 说明                                   |
 | :------- | :------------------------------------- |
 | 主题名称 | NodeGet Glassmorphism                  |

@@ -47,7 +47,7 @@ function getCommitHash(): string {
 }
 
 /**
- * Vite 插件：构建后打包 Komari 主题 Zip
+ * NodeGet theme zip
  * theme.zip
  * ├── komari-theme.json
  * ├── preview.png
@@ -55,7 +55,7 @@ function getCommitHash(): string {
  */
 function komariThemeZip(): Plugin {
   return {
-    name: 'komari-theme-zip',
+    name: 'nodeget-theme-zip',
     apply: 'build',
     closeBundle: async () => {
       const commitHash = getCommitHash()
