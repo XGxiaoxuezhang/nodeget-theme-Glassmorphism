@@ -1,4 +1,5 @@
 import { NETWORK_CONFIG } from '@/constants/network'
+import { nodegetGetVersion, nodegetPublicInfo } from '@/utils/nodeget-adapter'
 
 /**
  * Komari API 客户端 SDK
@@ -400,7 +401,7 @@ export class KomariApi {
    * 注意：此接口返回的是直接的 MeInfo 对象，不是包裹在 { status, message, data } 中
    */
   async getMe(): Promise<MeInfo> {
-    return this.getRaw<MeInfo>('/me')
+    return { logged_in: false, username: '' }
   }
 
   // ===== 服务端公开属性 =====
@@ -409,14 +410,14 @@ export class KomariApi {
    * 获取站点的公开设置属性
    */
   async getPublicSettings(): Promise<PublicSettings> {
-    return this.get<PublicSettings>('/public')
+    return nodegetPublicInfo()
   }
 
   /**
    * 获取服务端版本信息
    */
   async getVersion(): Promise<VersionInfo> {
-    return this.get<VersionInfo>('/version')
+    return nodegetGetVersion()
   }
 
   // ===== 节点信息 =====

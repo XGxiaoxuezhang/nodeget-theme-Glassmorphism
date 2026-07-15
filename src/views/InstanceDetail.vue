@@ -116,7 +116,7 @@ const { getNodeProviderMetadata } = useNodeProviderMetadata({
   nodes: () => data.value ? [data.value] : [],
   customAliases: () => appStore.providerAliases,
   enabled: () => Boolean(data.value),
-  allowGeoLookup: () => appStore.privateFeaturesAllowed,
+  allowGeoLookup: () => false,
   geoPermission: 'providerGeoLookup',
 })
 

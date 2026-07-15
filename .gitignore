@@ -1,4 +1,5 @@
-# Logs
+# NodeGet Glassmorphism
+
 logs
 *.log
 npm-debug.log*
@@ -39,6 +40,9 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# NodeGet deployment-only public token configuration
+public/config.json
 
 # Theme build output
 komari-theme-*.zip
