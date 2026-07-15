@@ -1,10 +1,10 @@
 {
-  "name": "Komari Glassmorphism",
-  "short": "Glassmorphism",
-  "description": "A Glassmorphism theme for Komari",
+  "name": "NodeGet Glassmorphism",
+  "short": "NodeGet Glassmorphism",
+  "description": "A Glassmorphism theme for NodeGet",
   "version": "3.1.5",
   "author": "sanrokamlan",
-  "url": "https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism",
+  "url": "https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism",
   "preview": "preview.png",
   "configuration": {
     "type": "managed",
