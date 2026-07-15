@@ -7,7 +7,6 @@ import type { Client, KomariRpc, NodeStatus } from '@/utils/rpc'
 import { REALTIME_CONFIG } from '@/constants/realtime'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
-import { getSharedApi } from '@/utils/api'
 import { getSharedRpc, RpcError } from '@/utils/rpc'
 
 /** 初始化配置 */
@@ -190,9 +189,8 @@ class InitManager {
    */
   private async fetchPublicSettings(): Promise<void> {
     try {
-      const api = getSharedApi()
-      const publicSettings = await api.getPublicSettings()
-      this.appStore.publicSettings = publicSettings
+      const publicSettings = await this.rpc.getPublicInfo()
+      this.appStore.publicSettings = publicSettings as any
     }
     catch (error) {
       console.error('[InitManager] Failed to fetch public settings:', error)
@@ -204,16 +202,7 @@ class InitManager {
    * 获取用户信息
    */
   private async fetchUserInfo(): Promise<void> {
-    try {
-      const api = getSharedApi()
-      const userInfo = await api.getMe()
-      this.appStore.updateLoginState(userInfo.logged_in, userInfo)
-    }
-    catch (error) {
-      this.appStore.updateLoginState(false)
-      console.error('[InitManager] Failed to fetch user info:', error)
-      // 非关键错误，继续初始化
-    }
+    this.appStore.updateLoginState(false)
   }
 
   /**
@@ -241,22 +230,13 @@ class InitManager {
    * 启动 WebSocket 连接和轮询
    */
   private startWebSocketAndPolling(): void {
-    // 根据主题配置决定初始连接模式
-    const configuredMode = this.appStore.rpcTransportMode
-    this.useWebSocket = configuredMode === 'websocket'
+    // NodeGet theme adapter owns its own WebSocket; Komari websocket transport is not used.
+    this.useWebSocket = false
+    const client = this.rpc.getClient()
+    client.setTransport(false)
+    this.nodesStore.updateWsState('connected', 0)
 
-    if (this.useWebSocket) {
-      // 尝试建立 WebSocket 连接
-      this.connectWebSocket()
-    }
-    else {
-      // HTTP 模式：直接设置 RPC 客户端为 HTTP 模式
-      const client = this.rpc.getClient()
-      client.setTransport(false)
-      this.nodesStore.updateWsState('disconnected', this.config.wsMaxReconnectAttempts)
-    }
-
-    // 开始轮询（作为 WebSocket 的补充或备选方案）
+    // 开始轮询
     this.startPolling()
   }
 

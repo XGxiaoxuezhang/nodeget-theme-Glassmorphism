@@ -79,12 +79,15 @@ interface StatusData {
   cpu: number
   gpu: number
   ram: number
+  ram_total: number
   swap: number
+  swap_total: number
   load: number
   load5: number
   load15: number
   temp: number
   disk: number
+  disk_total: number
   net_in: number
   net_out: number
   net_total_up: number
@@ -241,8 +244,12 @@ const useNodesStore = defineStore('nodes', () => {
       node.gpu = status.gpu
     if (node.ram !== status.ram)
       node.ram = status.ram
+    if (node.mem_total !== status.ram_total)
+      node.mem_total = status.ram_total
     if (node.swap !== status.swap)
       node.swap = status.swap
+    if (node.swap_total !== status.swap_total)
+      node.swap_total = status.swap_total
     if (node.load !== status.load)
       node.load = status.load
     if (node.load5 !== status.load5)
@@ -253,6 +260,8 @@ const useNodesStore = defineStore('nodes', () => {
       node.temp = status.temp
     if (node.disk !== status.disk)
       node.disk = status.disk
+    if (node.disk_total !== status.disk_total)
+      node.disk_total = status.disk_total
     if (node.net_in !== status.net_in)
       node.net_in = status.net_in
     if (node.net_out !== status.net_out)

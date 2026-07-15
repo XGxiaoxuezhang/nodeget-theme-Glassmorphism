@@ -40,6 +40,9 @@ __screenshots__/
 # Vite
 *.timestamp-*-*.mjs
 
+# NodeGet deployment-only public token configuration
+public/config.json
+
 # Theme build output
 komari-theme-*.zip
 bun.lock

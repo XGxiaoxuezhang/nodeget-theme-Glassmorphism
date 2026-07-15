@@ -1,4 +1,7 @@
 import { NETWORK_CONFIG } from '@/constants/network'
+import { nodegetClose, nodegetGetLoadRecords, nodegetGetNodeRecentStatus, nodegetGetNodes, nodegetGetStatuses, nodegetGetVersion, nodegetPing, nodegetPublicInfo } from '@/utils/nodeget-adapter'
+import { nodegetGetPublicPingMetricStats, nodegetGetPublicPingTasks, nodegetListMetricDefinitions, nodegetQueryMetrics } from '@/utils/nodeget-metrics-adapter'
+import { nodegetGetPingRecords } from '@/utils/nodeget-ping-adapter'
 
 /**
  * Komari RPC2 Client SDK
@@ -830,15 +833,15 @@ export class KomariRpc {
   /**
    * Ping 测试
    */
-  async ping(signal?: AbortSignal): Promise<string> {
-    return this.client.call<string>('rpc.ping', undefined, signal)
+  async ping(_signal?: AbortSignal): Promise<string> {
+    return nodegetPing()
   }
 
   /**
    * 获取版本信息
    */
   async getVersion(): Promise<VersionInfo> {
-    return this.client.call<VersionInfo>('rpc.getVersion')
+    return nodegetGetVersion()
   }
 
   // ==================== 通用方法 ====================
@@ -847,28 +850,28 @@ export class KomariRpc {
    * 获取所有节点信息
    */
   async getNodes(): Promise<Record<string, Client>> {
-    return this.client.call<Record<string, Client>>('common:getNodes')
+    return nodegetGetNodes()
   }
 
   /**
    * 获取所有节点最新状态
    */
   async getNodesLatestStatus(): Promise<Record<string, NodeStatus>> {
-    return this.client.call<Record<string, NodeStatus>>('common:getNodesLatestStatus')
+    return nodegetGetStatuses()
   }
 
   /**
    * 获取节点最近状态记录
    */
   async getNodeRecentStatus(uuid: string, limit?: number): Promise<{ count: number, records: StatusRecord[] }> {
-    return this.client.call<{ count: number, records: StatusRecord[] }>('common:getNodeRecentStatus', { uuid, limit })
+    return nodegetGetNodeRecentStatus(uuid, limit)
   }
 
   /**
    * 获取公开的站点信息
    */
   async getPublicInfo(): Promise<PublicInfo> {
-    return this.client.call<PublicInfo>('common:getPublicInfo')
+    return nodegetPublicInfo()
   }
 
   /**
@@ -898,29 +901,15 @@ export class KomariRpc {
   /**
    * 获取负载记录
    */
-  async getLoadRecords(uuid?: string, hours?: number, loadType?: string, maxCount?: number, signal?: AbortSignal): Promise<{ records: StatusRecord[] | Record<string, StatusRecord[]> }> {
-    return this.client.call<{ records: StatusRecord[] | Record<string, StatusRecord[]> }>('common:getRecords', {
-      type: 'load',
-      uuid,
-      hours,
-      load_type: loadType,
-      maxCount,
-      max_count: maxCount,
-    }, signal)
+  async getLoadRecords(uuid?: string, hours?: number, loadType?: string, maxCount?: number, _signal?: AbortSignal): Promise<{ records: StatusRecord[] | Record<string, StatusRecord[]> }> {
+    return nodegetGetLoadRecords(uuid, hours, maxCount)
   }
 
   /**
    * 获取 Ping 记录
    */
   async getPingRecords(taskId?: number, hours?: number, maxCount?: number, signal?: AbortSignal, uuid?: string): Promise<{ records: PingRecord[], tasks?: PingTaskInfo[], basic_info?: Array<{ client: string, loss: number, min: number, max: number }> }> {
-    return this.client.call<{ records: PingRecord[], tasks?: PingTaskInfo[], basic_info?: Array<{ client: string, loss: number, min: number, max: number }> }>('common:getRecords', {
-      type: 'ping',
-      uuid,
-      task_id: taskId,
-      hours,
-      maxCount,
-      max_count: maxCount,
-    }, signal)
+    return nodegetGetPingRecords(taskId, hours, maxCount, uuid)
   }
 
   // ==================== Admin 方法（需登录权限） ====================
@@ -960,25 +949,26 @@ export class KomariRpc {
   }
 
   async getPublicPingTasks(): Promise<PingTaskInfo[]> {
-    return this.client.call<PingTaskInfo[]>('public:getPublicPingTasks')
+    return nodegetGetPublicPingTasks()
   }
 
   async listPublicMetricDefinitions(): Promise<MetricDefinition[]> {
-    return this.client.call<MetricDefinition[]>('public:listMetricDefinitions')
+    return nodegetListMetricDefinitions()
   }
 
-  async queryPublicMetrics(params: MetricQueryParams, signal?: AbortSignal): Promise<MetricQueryResponse> {
-    return this.client.call<MetricQueryResponse>('public:queryMetrics', params, signal)
+  async queryPublicMetrics(params: MetricQueryParams, _signal?: AbortSignal): Promise<MetricQueryResponse> {
+    return nodegetQueryMetrics(params)
   }
 
-  async getPublicPingMetricStats(params: PingMetricStatsParams, signal?: AbortSignal): Promise<PingMetricStatsResponse> {
-    return this.client.call<PingMetricStatsResponse>('public:getPingMetricStats', params, signal)
+  async getPublicPingMetricStats(params: PingMetricStatsParams, _signal?: AbortSignal): Promise<PingMetricStatsResponse> {
+    return nodegetGetPublicPingMetricStats(params)
   }
 
   /**
    * 关闭连接
    */
   close(): void {
+    nodegetClose()
     this.client.close()
   }
 }
