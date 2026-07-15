@@ -90,6 +90,10 @@ export interface Client {
   ipv4?: string
   ipv6?: string
   region: string
+  provider?: string
+  city?: string
+  country?: string
+  asn?: string
   remark?: string
   public_remark: string
   mem_total: number

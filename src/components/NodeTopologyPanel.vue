@@ -60,7 +60,7 @@ const { metadataByUuid } = useNodeProviderMetadata({
   nodes: () => props.nodes,
   customAliases: () => appStore.providerAliases,
   enabled: () => appStore.privateFeaturesAllowed,
-  allowGeoLookup: () => appStore.privateFeaturesAllowed,
+  allowGeoLookup: () => false,
   geoPermission: 'nodeTopology',
 })
 

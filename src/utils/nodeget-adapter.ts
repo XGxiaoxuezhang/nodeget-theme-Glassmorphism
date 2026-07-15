@@ -119,7 +119,7 @@ export async function nodegetGetNodes(): Promise<Record<string, Client>> {
   const list: any = await c.call('nodeget-server_list_all_agent_uuid', {})
   const uuids = (list?.uuids || list || []).map((x: any) => typeof x === 'string' ? x : x.uuid).filter(Boolean)
   const kvReq: Array<{ namespace: string, key: string }> = []
-  const keys = ['metadata_name', 'metadata_region', 'metadata_price', 'metadata_price_unit', 'metadata_price_cycle', 'metadata_expire_time', 'metadata_tags', 'metadata_hidden', 'metadata_order', 'metadata_group', 'metadata_traffic_limit']
+  const keys = ['metadata_name', 'metadata_region', 'metadata_provider', 'metadata_city', 'metadata_public_remark', 'metadata_price', 'metadata_price_unit', 'metadata_price_cycle', 'metadata_expire_time', 'metadata_tags', 'metadata_hidden', 'metadata_order', 'metadata_group', 'metadata_traffic_limit']
   for (const u of uuids) {
     for (const key of keys) kvReq.push({ namespace: u, key })
   }
@@ -141,7 +141,10 @@ export async function nodegetGetNodes(): Promise<Record<string, Client>> {
     const sys = parseJson<any>(st.system || st.system_data, {})
     const cpu = parseJson<any>(st.cpu || st.cpu_data, {})
     const tags = kvValue(kv, 'metadata_tags', '')
-    out[uuid] = { uuid, name: String(kvValue(kv, 'metadata_name', uuid.slice(0, 8))), cpu_name: cpu.brand || cpu.per_core?.[0]?.brand || '-', virtualization: sys.virtualization || '', arch: sys.system_arch || sys.arch || '', cpu_cores: cpu.logical_cores || cpu.physical_cores || cpu.per_core?.length || 1, cpu_physical_cores: cpu.physical_cores || undefined, os: sys.system_os_long_version || sys.system_name || sys.system_os_version || '-', kernel_version: sys.system_kernel || sys.system_kernel_version || '', gpu_name: '', region: String(kvValue(kv, 'metadata_region', '')), public_remark: '', mem_total: 0, swap_total: 0, disk_total: 0, weight: Number(kvValue(kv, 'metadata_order', 0)) || 0, price: Number(kvValue(kv, 'metadata_price', 0)) || 0, billing_cycle: Number(kvValue(kv, 'metadata_price_cycle', 30)) || 30, auto_renewal: false, currency: String(kvValue(kv, 'metadata_price_unit', 'CNY')), expired_at: String(kvValue(kv, 'metadata_expire_time', '')), group: String(kvValue(kv, 'metadata_group', kvValue(kv, 'metadata_region', ''))), tags: Array.isArray(tags) ? tags.join(',') : String(tags || ''), hidden: Boolean(kvValue(kv, 'metadata_hidden', false)), traffic_limit: Number(kvValue(kv, 'metadata_traffic_limit', 0)) || 0, traffic_limit_type: 'sum', created_at: '', updated_at: '' }
+    const provider = String(kvValue(kv, 'metadata_provider', ''))
+    const city = String(kvValue(kv, 'metadata_city', ''))
+    const publicRemark = String(kvValue(kv, 'metadata_public_remark', ''))
+    out[uuid] = { uuid, name: String(kvValue(kv, 'metadata_name', uuid.slice(0, 8))), cpu_name: cpu.brand || cpu.per_core?.[0]?.brand || '-', virtualization: sys.virtualization || '', arch: sys.system_arch || sys.arch || '', cpu_cores: cpu.logical_cores || cpu.physical_cores || cpu.per_core?.length || 1, cpu_physical_cores: cpu.physical_cores || undefined, os: sys.system_os_long_version || sys.system_name || sys.system_os_version || '-', kernel_version: sys.system_kernel || sys.system_kernel_version || '', gpu_name: '', ipv4: '', ipv6: '', region: String(kvValue(kv, 'metadata_region', city)), provider, city, country: String(kvValue(kv, 'metadata_country', '')), asn: String(kvValue(kv, 'metadata_asn', '')), remark: provider, public_remark: publicRemark, mem_total: 0, swap_total: 0, disk_total: 0, weight: Number(kvValue(kv, 'metadata_order', 0)) || 0, price: Number(kvValue(kv, 'metadata_price', 0)) || 0, billing_cycle: Number(kvValue(kv, 'metadata_price_cycle', 30)) || 30, auto_renewal: false, currency: String(kvValue(kv, 'metadata_price_unit', 'CNY')), expired_at: String(kvValue(kv, 'metadata_expire_time', '')), group: String(kvValue(kv, 'metadata_group', kvValue(kv, 'metadata_region', ''))), tags: Array.isArray(tags) ? tags.join(',') : String(tags || ''), hidden: Boolean(kvValue(kv, 'metadata_hidden', false)), traffic_limit: Number(kvValue(kv, 'metadata_traffic_limit', 0)) || 0, traffic_limit_type: 'sum', created_at: '', updated_at: '' }
   }
   cachedClients = out
   return out
@@ -165,22 +168,14 @@ function nodegetSummaryToStatus(uuid: string, d: any, now = Date.now()): NodeSta
   return { client: uuid, time: iso(ts), cpu: firstValue(d, ['cpu_usage']), gpu: firstValue(d, ['gpu_usage']), ram: firstValue(d, ['used_memory']), ram_total: memTotal, swap: firstValue(d, ['used_swap']), swap_total: swapTotal, load: firstValue(d, ['load_one']), load5: firstValue(d, ['load_five']), load15: firstValue(d, ['load_fifteen']), temp: 0, disk: diskUsed, disk_total: diskTotal, net_in: firstValue(d, ['receive_speed']), net_out: firstValue(d, ['transmit_speed']), net_total_up: firstValue(d, ['total_transmitted']), net_total_down: firstValue(d, ['total_received']), traffic_up: firstValue(d, ['total_transmitted']), traffic_down: firstValue(d, ['total_received']), process: firstValue(d, ['process_count']), connections: firstValue(d, ['tcp_connections']), connections_udp: firstValue(d, ['udp_connections']), online: Boolean(ts && now - ts < 30000), uptime: firstValue(d, ['uptime']), updated_at: iso(ts) }
 }
 
-function statusToRecord(s: NodeStatus): StatusRecord {
+function _statusToRecord(s: NodeStatus): StatusRecord {
   return { client: s.client, time: s.time, cpu: s.cpu, gpu: s.gpu, ram: s.ram, ram_total: s.ram_total, swap: s.swap, swap_total: s.swap_total, load: s.load, load5: s.load5, load15: s.load15, temp: s.temp, disk: s.disk, disk_total: s.disk_total, net_in: s.net_in, net_out: s.net_out, net_total_up: s.net_total_up, net_total_down: s.net_total_down, traffic_up: s.traffic_up, traffic_down: s.traffic_down, process: s.process, connections: s.connections, connections_udp: s.connections_udp }
 }
 
 export async function nodegetGetNodeRecentStatus(uuid: string, limit = 150): Promise<{ count: number, records: StatusRecord[] }> {
-  if (!cachedStatuses[uuid])
-    await nodegetGetStatuses()
-  const base = cachedStatuses[uuid]
-  const records: StatusRecord[] = []
-  if (base) {
-    const now = Date.now()
-    for (let i = Math.min(limit, 150) - 1; i >= 0; i--) records.push({ ...statusToRecord(base), time: iso(now - i * 1000) })
-  }
+  const records = await nodegetQueryHistoricalSummary(uuid, 1, Math.min(limit, 1000))
   return { count: records.length, records }
 }
-
 export async function nodegetGetLoadRecords(uuid?: string, hours = 1, maxCount = 150): Promise<{ records: StatusRecord[] | Record<string, StatusRecord[]> }> {
   const ids = uuid ? [uuid] : Object.keys(cachedStatuses).length ? Object.keys(cachedStatuses) : Object.keys(await nodegetGetNodes())
   const recordsByUuid: Record<string, StatusRecord[]> = {}

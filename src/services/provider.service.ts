@@ -17,7 +17,7 @@ export function getNodeIps(node: NodeData): string[] {
 }
 
 export function getProviderMetadataText(node: NodeData): string {
-  return [node.name, node.public_remark, node.remark, node.tags, node.group, node.region]
+  return [node.name, node.provider, node.city, node.country, node.asn, node.public_remark, node.remark, node.tags, node.group, node.region]
     .filter(Boolean)
     .join(' ')
 }
@@ -31,6 +31,10 @@ export function getNodeProviderFingerprint(node: NodeData, customAliases: string
     node.tags,
     node.group,
     node.region,
+    node.provider,
+    node.city,
+    node.country,
+    node.asn,
     allowGeoLookup ? node.ipv4 : '',
     allowGeoLookup ? node.ipv6 : '',
     customAliases,

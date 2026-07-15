@@ -1,6 +1,5 @@
 import type { PingRecord, PingTaskInfo, StatusRecord } from '@/utils/rpc'
 import { requestManager } from '@/services/request.service'
-import { ApiError, getSharedApi } from '@/utils/api'
 import { getSharedRpc, RpcError } from '@/utils/rpc'
 
 function numberOrZero(value: unknown): number {
@@ -23,8 +22,6 @@ function cachePart(value: string | number | undefined): string {
 
 function shouldRetryHistoryRequest(error: unknown): boolean {
   if (error instanceof RpcError)
-    return error.code !== 401 && error.code !== 403
-  if (error instanceof ApiError)
     return error.code !== 401 && error.code !== 403
   return true
 }
@@ -144,8 +141,7 @@ export async function loadNodeLoadRecords(uuid: string, hours: number, maxCount?
         return normalizeStatusRecordsPayload(result.records)
       }
       catch {
-        const result = await getSharedApi().getLoadRecords(uuid, safeHours, safeMaxCount, signal)
-        return normalizeStatusRecords(result.records)
+        return []
       }
     },
     { shouldRetry: shouldRetryHistoryRequest },
