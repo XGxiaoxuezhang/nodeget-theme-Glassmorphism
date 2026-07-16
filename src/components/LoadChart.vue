@@ -543,7 +543,7 @@ async function loadMetricCatalog(): Promise<void> {
   pingTasks.value = tasks
 }
 
-async function loadMetricHistoryRecords(params: Pick<MetricQueryParams, 'hours' | 'start' | 'end'>): Promise<MetricHistoryData | null> {
+async function _loadMetricHistoryRecords(params: Pick<MetricQueryParams, 'hours' | 'start' | 'end'>): Promise<MetricHistoryData | null> {
   const definitions = await loadMetricDefinitions()
   const availableKeys = new Set(definitions.map(definition => definition.name))
   availableMetricKeys.value = availableKeys
@@ -655,27 +655,15 @@ async function fetchHistoryData() {
     return
   }
 
-  const range = customRange.value
   const hours = effectiveHistoryHours.value
-  const metricParams: Pick<MetricQueryParams, 'hours' | 'start' | 'end'> = isCustomRange.value && range
-    ? { start: range.start.toDate().toISOString(), end: range.end.toDate().toISOString() }
-    : { hours }
 
   loading.value = true
   error.value = null
 
   try {
-    const metricHistory = await loadMetricHistoryRecords(metricParams).catch(() => null)
-    if (metricHistory) {
-      metricData.value = metricHistory.records
-      rawMetricSeries.value = metricHistory.series
-      remoteData.value = []
-    }
-    else {
-      metricData.value = null
-      rawMetricSeries.value = []
-      remoteData.value = await loadNodeLoadRecords(props.uuid, hours, LOAD_RECORD_MAX_COUNT)
-    }
+    metricData.value = null
+    rawMetricSeries.value = []
+    remoteData.value = await loadNodeLoadRecords(props.uuid, hours, LOAD_RECORD_MAX_COUNT)
   }
   catch (err) {
     error.value = err instanceof Error ? err.message : '获取数据失败'
