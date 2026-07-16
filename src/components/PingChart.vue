@@ -257,7 +257,7 @@ function buildMetricRecords(seriesList: MetricSeries[]): PingRecord[] {
   return records.sort((a, b) => dayjs(a.time).valueOf() - dayjs(b.time).valueOf())
 }
 
-async function loadMetricPingPayload(nodeUuid: string): Promise<{ records: PingRecord[], tasks: PingTaskInfo[] } | null> {
+async function _loadMetricPingPayload(nodeUuid: string): Promise<{ records: PingRecord[], tasks: PingTaskInfo[] } | null> {
   const range = appliedCustomRange.value
   const metricRangeParams = isCustomRange.value && range
     ? { start: range.start.toDate().toISOString(), end: range.end.toDate().toISOString() }
@@ -342,11 +342,6 @@ async function fetchRecords() {
   error.value = null
 
   try {
-    const metricPayload = await loadMetricPingPayload(requestedUuid).catch(() => null)
-    if (sequence !== fetchRecordsSequence || requestedUuid !== props.uuid)
-      return
-
-    legacyCustomRangeFallback.value = !metricPayload && isCustomRange.value
     const range = appliedCustomRange.value
     const legacyHours = range
       ? Math.min(
@@ -354,7 +349,7 @@ async function fetchRecords() {
           Math.max(range.hours, Math.ceil(dayjs().diff(range.start, 'hour', true))),
         )
       : selectedHours.value
-    const result = metricPayload ?? await loadPingRecordsWithTasks(legacyHours, PING_RECORD_MAX_COUNT, requestedUuid)
+    const result = await loadPingRecordsWithTasks(legacyHours, PING_RECORD_MAX_COUNT, requestedUuid)
     if (sequence !== fetchRecordsSequence || requestedUuid !== props.uuid)
       return
 
