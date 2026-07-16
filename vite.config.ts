@@ -53,7 +53,7 @@ function getDistFiles(dir: string, baseDir = dir): string[] {
     const fullPath = resolve(dir, entry.name)
     if (entry.isDirectory())
       return getDistFiles(fullPath, baseDir)
-    return [fullPath.slice(baseDir.length + 1).replaceAll('\\\\', '/')]
+    return [fullPath.slice(baseDir.length + 1).replaceAll('\\', '/')]
   }).sort()
 }
 
