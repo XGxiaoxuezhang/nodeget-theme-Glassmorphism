@@ -11,9 +11,9 @@ export async function nodegetGetPingRecords(taskId?: number, hours = 1, maxCount
     condition.push({ uuid })
   if (taskId)
     condition.push({ task_id: taskId })
-  condition.push({ timestamp_from: Date.now() - hours * 3600000 }, { limit: maxCount })
+  condition.push({ timestamp_from: Date.now() - hours * 3600000 }, { timestamp_to: Date.now() }, { limit: Math.min(Math.max(1, maxCount), 10000) })
   const c = await nodegetCall<any>('task_query', { task_data_query: { condition } }).catch(() => [])
-  const rows: any[] = Array.isArray(c) ? c : []
+  const rows: any[] = Array.isArray(c) ? c : Array.isArray(c?.data) ? c.data : []
   const records: PingRecord[] = []
   const tasks = new Map<string, PingTaskInfo>()
   for (const row of rows) {

@@ -187,7 +187,7 @@ async function nodegetQueryHistoricalSummary(uuid: string, hours: number, maxCou
   const end = Date.now()
   const start = end - Math.max(1, hours) * 3600000
   const fields = ['cpu_usage', 'gpu_usage', 'used_swap', 'total_swap', 'used_memory', 'total_memory', 'load_one', 'load_five', 'load_fifteen', 'uptime', 'process_count', 'total_space', 'available_space', 'tcp_connections', 'udp_connections', 'total_received', 'total_transmitted', 'transmit_speed', 'receive_speed']
-  const result = await nodegetCall<any[]>('agent_query_dynamic_summary', { query: { condition: [{ uuid }, { timestamp_from: start }, { limit: Math.min(Math.max(1, maxCount), 1000) }], fields } }).catch(() => [])
+  const result = await nodegetCall<any[]>('agent_query_dynamic_summary', { query: { condition: [{ uuid }, { timestamp_from: start }, { timestamp_to: end }, { limit: Math.min(Math.max(1, maxCount), 10000) }], fields } }).catch(() => [])
   return (Array.isArray(result) ? result : []).map(row => nodegetSummaryToRecord(uuid, row)).sort((a, b) => Date.parse(a.time) - Date.parse(b.time))
 }
 
