@@ -1,0 +1,17 @@
+{
+  "name": "NodeGet Glassmorphism",
+  "short": "NodeGetGlassmorphism",
+  "description": "Glassmorphism public monitoring theme for NodeGet",
+  "author": "XGxiaoxuezhang",
+  "repository": "https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism",
+  "version": "3.1.10",
+  "license": "MIT",
+  "user_preferences_form": {
+    "version": "1.0.0",
+    "items": [
+      { "key": "site_name", "name": "站点标题", "type": "string", "default": "NodeGet Glassmorphism", "help": "公开页面标题" },
+      { "key": "site_title", "name": "页面标题", "type": "string", "default": "NodeGet Glassmorphism", "help": "浏览器标签页标题" },
+      { "key": "footer", "name": "页脚文本", "type": "string", "default": "Powered by NodeGet", "help": "页面底部显示的文本" }
+    ]
+  }
+}

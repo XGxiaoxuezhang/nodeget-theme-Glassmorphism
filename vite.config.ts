@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite'
 import { execSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import process from 'node:process'
@@ -20,21 +20,21 @@ interface ThemeManifest {
   version?: unknown
 }
 
-const themeJsonPath = resolve(__dirname, 'komari-theme.json')
+const nodegetThemeJsonPath = resolve(__dirname, 'nodeget-theme.json')
 const devApiTarget = process.env.VITE_API_TARGET || 'http://127.0.0.1:25774'
 
 function readThemeManifest(): ThemeManifest {
-  if (!existsSync(themeJsonPath))
-    throw new Error('komari-theme.json not found')
+  if (!existsSync(nodegetThemeJsonPath))
+    throw new Error('nodeget-theme.json not found')
 
-  return JSON.parse(readFileSync(themeJsonPath, 'utf-8')) as ThemeManifest
+  return JSON.parse(readFileSync(nodegetThemeJsonPath, 'utf-8')) as ThemeManifest
 }
 
 function getThemeVersion(): string {
   const version = readThemeManifest().version
 
   if (typeof version !== 'string' || !version.trim())
-    throw new TypeError('komari-theme.json does not contain a top-level string version field')
+    throw new TypeError('nodeget-theme.json does not contain a top-level string version field')
 
   return version.trim()
 }
@@ -48,10 +48,27 @@ function getCommitHash(): string {
   }
 }
 
+function getDistFiles(dir: string, baseDir = dir): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry: { name: string, isDirectory: () => boolean }) => {
+    const fullPath = resolve(dir, entry.name)
+    if (entry.isDirectory())
+      return getDistFiles(fullPath, baseDir)
+    return [fullPath.slice(baseDir.length + 1).replaceAll('\\\\', '/')]
+  }).sort()
+}
+
+function writeThemeFilesManifest(distDir: string): string {
+  const files = getDistFiles(distDir).map(file => `dist/${file}`)
+  const manifestPath = resolve(__dirname, 'nodeget-theme-files.json')
+  writeFileSync(manifestPath, `${JSON.stringify(files, null, 2)}\n`)
+  return manifestPath
+}
+
 /**
  * NodeGet theme zip
  * theme.zip
- * ├── komari-theme.json
+ * ├── nodeget-theme.json
+ * ├── nodeget-theme-files.json
  * ├── preview.png
  * └── dist/
  */
@@ -75,6 +92,8 @@ function komariThemeZip(): Plugin {
         return
       }
 
+      const themeFilesPath = writeThemeFilesManifest(distDir)
+
       const output = fs.createWriteStream(outputPath)
       const archive = archiver('zip', { zlib: { level: 9 } })
 
@@ -92,7 +111,8 @@ function komariThemeZip(): Plugin {
 
         archive.pipe(output)
 
-        archive.file(themeJsonPath, { name: 'komari-theme.json' })
+        archive.file(nodegetThemeJsonPath, { name: 'nodeget-theme.json' })
+        archive.file(themeFilesPath, { name: 'nodeget-theme-files.json' })
 
         if (existsSync(previewPath)) {
           archive.file(previewPath, { name: 'preview.png' })

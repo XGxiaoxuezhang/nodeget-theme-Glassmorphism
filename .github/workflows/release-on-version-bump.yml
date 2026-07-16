@@ -56,11 +56,11 @@ jobs:
             return JSON.parse(content)
           }
 
-          const themeJson = readJson('komari-theme.json')
+          const themeJson = readJson('nodeget-theme.json')
           const currentVersion = themeJson.version
 
           if (typeof currentVersion !== 'string' || !versionRe.test(currentVersion)) {
-            console.error(`Invalid komari-theme.json version: ${currentVersion}`)
+            console.error(`Invalid nodeget-theme.json version: ${currentVersion}`)
             process.exit(1)
           }
 
@@ -69,7 +69,7 @@ jobs:
 
           if (beforeSha && beforeSha !== zeroSha) {
             try {
-              previousVersion = readJsonAtRevision(beforeSha, 'komari-theme.json').version ?? ''
+              previousVersion = readJsonAtRevision(beforeSha, 'nodeget-theme.json').version ?? ''
               versionChanged = previousVersion !== currentVersion
             }
             catch {
@@ -109,7 +109,7 @@ jobs:
       - name: Skip when version is unchanged and release tag exists
         if: steps.version.outputs.version_changed != 'true' && steps.tag.outputs.exists == 'true'
         run: |
-          echo "komari-theme.json version has not changed and ${{ steps.version.outputs.release_tag }} already exists. Skipping release."
+          echo "nodeget-theme.json version has not changed and ${{ steps.version.outputs.release_tag }} already exists. Skipping release."
 
       - name: Build project
         if: steps.version.outputs.version_changed == 'true' || steps.tag.outputs.exists == 'false'

@@ -44,6 +44,9 @@ __screenshots__/
 # NodeGet deployment-only public token configuration
 public/config.json
 
+# NodeGet generated theme metadata
+nodeget-theme-files.json
+
 # Theme build output
 komari-theme-*.zip
 nodeget-theme-*.zip
