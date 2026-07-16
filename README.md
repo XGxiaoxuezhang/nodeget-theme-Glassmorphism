@@ -1,24 +1,21 @@
 # NodeGet Glassmorphism
 
-一个给 NodeGet 用的公开监控主题。界面沿用了 Glassmorphism 的毛玻璃风格，数据部分改成通过 NodeGet WebSocket JSON-RPC 获取。
+NodeGet Glassmorphism 是一个 NodeGet 公开监控主题。它保留 Glassmorphism 的毛玻璃界面，数据部分改为通过 NodeGet WebSocket JSON-RPC 获取。
 
 ## 主要功能
 
 - 节点列表、节点详情和实时状态
 - CPU、内存、Swap、磁盘、负载、网络、连接数、进程数
-- 真实历史负载曲线
+- 历史负载曲线
 - Ping / TCPing 历史和统计
 - 延迟线路搜索与 Ping/TCPing 筛选
-- 首页节点、流量、资源等汇总卡片
+- 首页资源和流量汇总
 - 地区、标签、厂商和 ASN 展示
-- NodeGet KV 中的价格、到期时间、流量额度等元数据
-- 玻璃拟态、地球视图、详情图表和响应式布局
+- NodeGet KV 元数据：价格、到期时间和流量额度
 
-## 安全说明
+## 安全
 
-这是公开只读探针，不是 NodeGet 管理后台。
-
-公开 Token 只需要监控数据、Ping/TCPing、节点列表和 `metadata_*` / `traffic_*` 的读取权限。不要给公开 Token 授予以下权限：
+这是公开只读探针，不是 NodeGet 管理后台。公开 Token 不应拥有以下权限：
 
 ```text
 execute
@@ -31,7 +28,7 @@ crontab 写入或删除
 KV 写入或删除
 ```
 
-主题不会在前端查询节点 IP，也不会把节点 IP 发送给第三方 GeoIP 服务。厂商、城市、国家和 ASN 使用脱敏 KV 字段：
+主题不会在前端查询节点 IP，也不会把 IP 发送给第三方 GeoIP 服务。厂商和网络信息使用脱敏 KV：
 
 ```text
 metadata_provider
@@ -50,11 +47,25 @@ metadata_country = CA
 metadata_asn = AS31898
 ```
 
-这些字段不需要写 IP，也不需要修改节点名称。
+不需要修改节点名称，也不要把 IP、密码或 Token 写入这些字段。
+
+## 从 NodeGet 主题管理安装
+
+NodeGet 支持从 GitHub 仓库远程安装和更新主题。在主题管理中填写：
+
+```text
+https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism
+```
+
+如果使用 Release 下载，打开：
+
+<https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism/releases>
+
+下载名称以 `nodeget-theme-Glassmorphism-build-` 开头的 zip，不要下载 GitHub 自动生成的源码压缩包。
 
 ## 配置
 
-部署时创建 `public/config.json`。该文件不会提交到仓库，真实 Token 不要放进 Git：
+部署时创建 `public/config.json`。该文件已加入 `.gitignore`，真实 Token 不要提交到 Git：
 
 ```json
 {
@@ -72,22 +83,6 @@ metadata_asn = AS31898
   ]
 }
 ```
-
-## 从 NodeGet 主题管理安装
-
-NodeGet 支持从远程 GitHub 仓库安装和更新符合主题规范的主题。在主题管理界面填写：
-
-```text
-https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism
-```
-
-NodeGet 会读取仓库中的主题清单和 Release 包。首次安装时按页面提示创建或选择公开只读 Token；更新时可以继续使用已有配置。
-
-也可以在 Releases 页面下载 zip 手动安装：
-
-<https://github.com/XGxiaoxuezhang/nodeget-theme-Glassmorphism/releases>
-
-不要下载 GitHub 的源码压缩包，下载带有 `nodeget-theme-Glassmorphism-build-` 前缀的主题 zip。
 
 ## 本地开发
 
@@ -108,26 +103,15 @@ dist/
 nodeget-theme-Glassmorphism-build-<short-sha>.zip
 ```
 
-zip 内的布局固定为：
+## 上游同步
+
+本仓库是独立维护的 NodeGet 版本，上游为：
 
 ```text
-komari-theme.json
-preview.png
-dist/
+https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism
 ```
 
-## 数据接口
-
-适配器主要使用以下 NodeGet 方法：
-
-```text
-nodeget-server_list_all_agent_uuid
-agent_static_data_multi_last_query
-agent_dynamic_summary_multi_last_query
-agent_query_dynamic_summary
-kv_get_multi_value
-task_query
-```
+仓库提供 `Sync upstream changes` 工作流，支持手动或每周自动检查上游更新。同步结果会先进入 PR，不会自动覆盖 `main`。合并前需要确认 NodeGet 适配层、公开 Token 权限和 IP 隐私逻辑没有被上游改动破坏。
 
 ## 开源信息
 
