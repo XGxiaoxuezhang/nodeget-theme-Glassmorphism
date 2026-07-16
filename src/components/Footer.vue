@@ -37,7 +37,7 @@ const formattedServerVersion = computed(() => serverVersion.value?.version ?? ''
             href="https://github.com/komari-monitor/komari" target="_blank" rel="noopener noreferrer"
             class="transition-opacity hover:opacity-80"
           >
-            <span class="font-medium text-foreground">Komari Monitor</span>
+            <span class="font-medium text-foreground">NodeGet Glassmorphism</span>
           </a>
         </DataTooltip>
       </div>

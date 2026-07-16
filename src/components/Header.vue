@@ -65,7 +65,7 @@ function handleButtonClick(action: string) {
   }
 }
 
-const sitename = computed(() => appStore.publicSettings?.sitename || 'Komari Monitor')
+const sitename = computed(() => appStore.publicSettings?.sitename || 'NodeGet Glassmorphism')
 </script>
 
 <template>
