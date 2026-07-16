@@ -111,7 +111,7 @@ export function nodegetClose(): void { rpcClient?.close(); rpcClient = null }
 export async function nodegetGetVersion(): Promise<VersionInfo> { return { version: 'nodeget-adapter', hash: 'nodeget' } }
 export async function nodegetPublicInfo(): Promise<any> {
   const cfg = await loadConfig()
-  return { sitename: String(cfg.user_preferences?.site_name || cfg.user_preferences?.site_title || 'NodeGet'), description: '', theme: 'NodeGetGlassmorphism', private_site: false, allow_cors: true, custom_body: '', custom_head: '', disable_password_login: true, oauth_enable: false, oauth_provider: null, record_preserve_time: 24, theme_settings: { dataUpdateInterval: 3, rpcTransportMode: 'websocket', nodeDetailSectionTabsEnabled: true } }
+  return { sitename: String(cfg.user_preferences?.site_name || cfg.user_preferences?.site_title || 'NodeGet'), description: '', theme: 'NodeGetGlassmorphism', private_site: false, allow_cors: true, custom_body: '', custom_head: '', disable_password_login: true, oauth_enable: false, oauth_provider: null, record_preserve_time: 720, ping_record_preserve_time: 168, theme_settings: { dataUpdateInterval: 3, rpcTransportMode: 'websocket', nodeDetailSectionTabsEnabled: true } }
 }
 
 export async function nodegetGetNodes(): Promise<Record<string, Client>> {
