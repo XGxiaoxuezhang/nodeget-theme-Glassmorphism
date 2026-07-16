@@ -183,12 +183,31 @@ export async function nodegetGetLoadRecords(uuid?: string, hours = 1, maxCount =
   return uuid ? { records: recordsByUuid[uuid] ?? [] } : { records: recordsByUuid }
 }
 
-async function nodegetQueryHistoricalSummary(uuid: string, hours: number, maxCount: number): Promise<StatusRecord[]> {
+async function nodegetQueryHistoricalSummary(uuid: string, hours: number, _maxCount: number): Promise<StatusRecord[]> {
   const end = Date.now()
   const start = end - Math.max(1, hours) * 3600000
   const fields = ['cpu_usage', 'gpu_usage', 'used_swap', 'total_swap', 'used_memory', 'total_memory', 'load_one', 'load_five', 'load_fifteen', 'uptime', 'process_count', 'total_space', 'available_space', 'tcp_connections', 'udp_connections', 'total_received', 'total_transmitted', 'transmit_speed', 'receive_speed']
-  const result = await nodegetCall<any[]>('agent_query_dynamic_summary', { query: { condition: [{ uuid }, { timestamp_from: start }, { timestamp_to: end }, { limit: Math.min(Math.max(1, maxCount), 10000) }], fields } }).catch(() => [])
-  return (Array.isArray(result) ? result : []).map(row => nodegetSummaryToRecord(uuid, row)).sort((a, b) => Date.parse(a.time) - Date.parse(b.time))
+  const windowMs = 2 * 3600000
+  const windows: Array<{ from: number, to: number }> = []
+  for (let from = start; from < end; from += windowMs)
+    windows.push({ from, to: Math.min(end, from + windowMs) })
+
+  const results: any[] = []
+  for (let index = 0; index < windows.length; index += 4) {
+    const batch = windows.slice(index, index + 4).map(({ from, to }) => nodegetCall<any[]>('agent_query_dynamic_summary', {
+      query: { condition: [{ uuid }, { timestamp_from: from }, { timestamp_to: to }, { limit: 10000 }], fields },
+    }).catch(() => []))
+    for (const result of await Promise.all(batch)) {
+      const rows = Array.isArray(result) ? result : []
+      results.push(...rows)
+    }
+  }
+
+  const unique = new Map<string, any>()
+  for (const row of results)
+    unique.set(`${uuid}:${row.timestamp}`, row)
+  return Array.from(unique.values(), row => nodegetSummaryToRecord(uuid, row))
+    .sort((a, b) => Date.parse(a.time) - Date.parse(b.time))
 }
 
 function nodegetSummaryToRecord(uuid: string, d: any): StatusRecord {

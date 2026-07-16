@@ -5,15 +5,29 @@ import { nodegetCall } from '@/utils/nodeget-adapter'
 function toMs(ts: unknown): number { const n = Number(ts || 0); return n < 1e12 ? n * 1000 : n }
 function iso(ts: number): string { return ts ? new Date(ts).toISOString() : new Date().toISOString() }
 
-export async function nodegetGetPingRecords(taskId?: number, hours = 1, maxCount = 500, uuid?: string): Promise<{ records: PingRecord[], tasks: PingTaskInfo[] }> {
-  const condition: unknown[] = []
-  if (uuid)
-    condition.push({ uuid })
-  if (taskId)
-    condition.push({ task_id: taskId })
-  condition.push({ timestamp_from: Date.now() - hours * 3600000 }, { timestamp_to: Date.now() }, { limit: Math.min(Math.max(1, maxCount), 10000) })
-  const c = await nodegetCall<any>('task_query', { task_data_query: { condition } }).catch(() => [])
-  const rows: any[] = Array.isArray(c) ? c : Array.isArray(c?.data) ? c.data : []
+export async function nodegetGetPingRecords(taskId?: number, hours = 1, _maxCount = 500, uuid?: string): Promise<{ records: PingRecord[], tasks: PingTaskInfo[] }> {
+  const end = Date.now()
+  const start = end - Math.max(1, hours) * 3600000
+  const windowMs = 24 * 3600000
+  const windows: Array<{ from: number, to: number }> = []
+  for (let from = start; from < end; from += windowMs)
+    windows.push({ from, to: Math.min(end, from + windowMs) })
+  const rows: any[] = []
+  for (let index = 0; index < windows.length; index += 4) {
+    const batch = windows.slice(index, index + 4).map(({ from, to }) => {
+      const condition: unknown[] = []
+      if (uuid)
+        condition.push({ uuid })
+      if (taskId)
+        condition.push({ task_id: taskId })
+      condition.push({ timestamp_from: from }, { timestamp_to: to }, { limit: 10000 })
+      return nodegetCall<any>('task_query', { task_data_query: { condition } }).catch(() => [])
+    })
+    for (const response of await Promise.all(batch)) {
+      const responseRows: any[] = Array.isArray(response) ? response : []
+      rows.push(...responseRows)
+    }
+  }
   const records: PingRecord[] = []
   const tasks = new Map<string, PingTaskInfo>()
   for (const row of rows) {
