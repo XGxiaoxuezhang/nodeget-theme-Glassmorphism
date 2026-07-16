@@ -136,7 +136,8 @@ const useNodesStore = defineStore('nodes', () => {
   const groups = computed(() => {
     const groupSet = new Set<string>()
     visibleNodes.value.forEach((n) => {
-      n.groups.forEach(group => groupSet.add(group))
+      const nodeGroups = Array.isArray(n.groups) ? n.groups : []
+      nodeGroups.forEach(group => groupSet.add(group))
     })
     return Array.from(groupSet)
   })

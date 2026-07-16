@@ -66,13 +66,12 @@ function writeThemeFilesManifest(distDir: string): string {
 
 /**
  * NodeGet theme zip
- * theme.zip
  * ├── nodeget-theme.json
  * ├── nodeget-theme-files.json
  * ├── preview.png
  * └── dist/
  */
-function komariThemeZip(): Plugin {
+function nodegetThemeZip(): Plugin {
   return {
     name: 'nodeget-theme-zip',
     apply: 'build',
@@ -88,41 +87,37 @@ function komariThemeZip(): Plugin {
         : 'preview.png'
 
       if (!existsSync(distDir)) {
-        console.log('[komari-theme-zip] dist directory not found, skipping zip creation')
+        console.log('[nodeget-theme-zip] dist directory not found, skipping zip creation')
         return
       }
 
       const themeFilesPath = writeThemeFilesManifest(distDir)
-
       const output = fs.createWriteStream(outputPath)
       const archive = archiver('zip', { zlib: { level: 9 } })
 
       return new Promise((resolve, reject) => {
         output.on('close', () => {
           const sizeMB = (archive.pointer() / 1024 / 1024).toFixed(2)
-          console.log(`[komari-theme-zip] Created ${zipFileName} (${sizeMB} MB)`)
+          console.log(`[nodeget-theme-zip] Created ${zipFileName} (${sizeMB} MB)`)
           resolve(undefined)
         })
 
         archive.on('error', (err: Error) => {
-          console.error('[komari-theme-zip] Error:', err)
+          console.error('[nodeget-theme-zip] Error:', err)
           reject(err)
         })
 
         archive.pipe(output)
-
         archive.file(nodegetThemeJsonPath, { name: 'nodeget-theme.json' })
         archive.file(themeFilesPath, { name: 'nodeget-theme-files.json' })
 
         if (existsSync(previewPath)) {
           archive.file(previewPath, { name: 'preview.png' })
-          if (manifestPreviewName !== 'preview.png') {
+          if (manifestPreviewName !== 'preview.png')
             archive.file(previewPath, { name: manifestPreviewName })
-          }
         }
 
         archive.directory(distDir, 'dist')
-
         archive.finalize()
       })
     },
@@ -138,7 +133,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     tailwindcss(),
-    komariThemeZip(),
+    nodegetThemeZip(),
   ],
   resolve: {
     alias: {
