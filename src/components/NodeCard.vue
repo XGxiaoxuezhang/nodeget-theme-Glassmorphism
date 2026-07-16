@@ -20,7 +20,10 @@ const props = withDefaults(defineProps<{
 }>(), {
   reduceMotion: false,
 })
-const emit = defineEmits<{ click: [] }>()
+const emit = defineEmits<{
+  click: []
+  pingClick: []
+}>()
 const appStore = useAppStore()
 
 function handleKeyboardOpen(event: KeyboardEvent) {
@@ -56,6 +59,11 @@ const offlineTime = computed(() => formatDateTime(props.node.time))
 const cpuStatus = computed(() => getStatus(props.node.cpu ?? 0))
 const memPercentage = computed(() => getMemoryPercentage(props.node))
 const memStatus = computed(() => getStatus(memPercentage.value))
+const swapTooltip = computed(() => {
+  const used = formatBytes(Math.max(0, props.node.swap ?? 0))
+  const total = Math.max(0, props.node.swap_total ?? 0)
+  return total > 0 ? `Swap 已用 ${used} / 总计 ${formatBytes(total)}` : `Swap 已用 ${used}`
+})
 const diskPercentage = computed(() => getDiskPercentage(props.node))
 const diskStatus = computed(() => getStatus(diskPercentage.value))
 
@@ -241,7 +249,7 @@ function hasRegion(region: string | null | undefined): boolean {
               <ProgressThin :percentage="props.node.cpu ?? 0" :status="cpuStatus" :height="4" />
             </div>
 
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1" :title="swapTooltip">
               <div class="flex justify-between text-xs">
                 <span class="text-muted-foreground">M</span>
                 <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
@@ -288,7 +296,7 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
 
           <!-- 内存 -->
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1" :title="swapTooltip">
             <div class="flex justify-between text-xs">
               <span class="text-muted-foreground">内存</span>
               <span class="tabular-nums font-medium">{{ memPercentage.toFixed(1) }}%</span>
@@ -387,10 +395,13 @@ function hasRegion(region: string | null | undefined): boolean {
 
         <!-- 延迟 + 丢包 -->
         <div class="grid grid-cols-2 gap-1.5">
-          <div
+          <button
+            type="button"
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
             :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
             :title="latencyPanelTooltip"
+            :aria-label="`${props.node.name} 延迟监测`"
+            @click.stop="emit('pingClick')"
           >
             <div class="flex items-center justify-between text-[11px] leading-none">
               <span class="text-muted-foreground">延迟</span>
@@ -410,12 +421,15 @@ function hasRegion(region: string | null | undefined): boolean {
                 />
               </DataTooltip>
             </div>
-          </div>
+          </button>
 
-          <div
+          <button
+            type="button"
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
             :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
             :title="lossPanelTooltip"
+            :aria-label="`${props.node.name} 丢包监测`"
+            @click.stop="emit('pingClick')"
           >
             <div class="flex items-center justify-between text-[11px] leading-none">
               <span class="text-muted-foreground">丢包</span>
@@ -435,7 +449,7 @@ function hasRegion(region: string | null | undefined): boolean {
                 />
               </DataTooltip>
             </div>
-          </div>
+          </button>
         </div>
 
         <!-- 自定义标签 -->
