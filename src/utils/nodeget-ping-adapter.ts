@@ -14,15 +14,15 @@ export async function nodegetGetPingRecords(taskId?: number, hours = 1, _maxCoun
     windows.push({ from, to: Math.min(end, from + windowMs) })
   const rows: any[] = []
   for (let index = 0; index < windows.length; index += 4) {
-    const batch = windows.slice(index, index + 4).map(({ from, to }) => {
+    const batch = windows.slice(index, index + 4).flatMap(({ from, to }) => ['ping', 'tcp_ping'].map((type) => {
       const condition: unknown[] = []
       if (uuid)
         condition.push({ uuid })
       if (taskId)
         condition.push({ task_id: taskId })
-      condition.push({ timestamp_from: from }, { timestamp_to: to }, { limit: 10000 })
+      condition.push({ type }, { timestamp_from: from }, { timestamp_to: to }, { limit: 10000 })
       return nodegetCall<any>('task_query', { task_data_query: { condition } }).catch(() => [])
-    })
+    }))
     for (const response of await Promise.all(batch)) {
       const responseRows: any[] = Array.isArray(response) ? response : []
       rows.push(...responseRows)

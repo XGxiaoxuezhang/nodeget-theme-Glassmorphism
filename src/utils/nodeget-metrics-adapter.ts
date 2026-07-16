@@ -46,9 +46,12 @@ export async function nodegetQueryMetrics(params: Record<string, any>): Promise<
   const conditions: unknown[] = []
   if (uuid)
     conditions.push({ uuid })
-  conditions.push({ timestamp_from_to: [start, end] }, { limit: 2000 })
-  const c = await nodegetCall<any>('task_query', { task_data_query: { condition: conditions } })
-  const rows: any[] = Array.isArray(c) ? c : []
+  const rows: any[] = []
+  for (const type of ['ping', 'tcp_ping']) {
+    const c = await nodegetCall<any>('task_query', { task_data_query: { condition: [...conditions, { type }, { timestamp_from_to: [start, end] }, { limit: 10000 }] } }).catch(() => [])
+    if (Array.isArray(c))
+      rows.push(...c)
+  }
   const grouped = new Map<string, any[]>()
   for (const row of rows || []) {
     const result = row.task_event_result || {}
