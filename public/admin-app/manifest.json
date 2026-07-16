@@ -1,6 +1,6 @@
 {
-  "name": "Komari Monitor",
-  "short_name": "Komari Monitor",
+  "name": "NodeGet Glassmorphism",
+  "short_name": "NodeGet Glassmorphism",
   "description": "A simple server monitor tool",
   "start_url": "/",
   "display": "standalone",
