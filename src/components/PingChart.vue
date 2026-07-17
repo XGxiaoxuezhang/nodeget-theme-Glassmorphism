@@ -431,33 +431,24 @@ const mergedData = computed(() => {
   )
 
   const range = appliedCustomRange.value
-  if (isCustomRange.value && range) {
-    const fromTs = range.start.valueOf()
-    const toTs = range.end.valueOf()
-    return merged.filter((item) => {
-      const timestamp = dayjs(item.time as string).valueOf()
-      return timestamp >= fromTs && timestamp <= toTs
-    })
-  }
+  const fromTs = isCustomRange.value && range
+    ? range.start.valueOf()
+    : Date.now() - selectedHours.value * 3600_000
+  const toTs = isCustomRange.value && range
+    ? range.end.valueOf()
+    : Date.now()
+  const visible = merged.filter((item) => {
+    const timestamp = dayjs(item.time as string).valueOf()
+    return timestamp >= fromTs && timestamp <= toTs
+  })
 
-  const hours = selectedHours.value
-  const lastItem = merged.at(-1)
-  const lastTs = lastItem ? dayjs(lastItem.time as string).valueOf() : dayjs().valueOf()
-  const fromTs = lastTs - hours * 3600_000
-
-  let startIdx = 0
-  for (let i = 0; i < merged.length; i++) {
-    const item = merged[i]
-    if (!item)
-      continue
-    const ts = dayjs(item.time as string).valueOf()
-    if (ts >= fromTs) {
-      startIdx = Math.max(0, i - 1)
-      break
-    }
-  }
-
-  return merged.slice(startIdx)
+  // Keep the requested range on the axis. Missing historical task data must
+  // stay visibly blank instead of shifting the chart window to the last sample.
+  return [
+    { time: dayjs(fromTs).toISOString() },
+    ...visible,
+    { time: dayjs(toTs).toISOString() },
+  ]
 })
 
 const chartData = computed(() => {

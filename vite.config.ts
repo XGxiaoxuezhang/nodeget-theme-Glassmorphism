@@ -58,7 +58,7 @@ function getDistFiles(dir: string, baseDir = dir): string[] {
 }
 
 function writeThemeFilesManifest(distDir: string): string {
-  const files = getDistFiles(distDir).map(file => `dist/${file}`)
+  const files = getDistFiles(distDir)
   const manifestPath = resolve(__dirname, 'nodeget-theme-files.json')
   writeFileSync(manifestPath, `${JSON.stringify(files, null, 2)}\n`)
   return manifestPath
@@ -69,7 +69,7 @@ function writeThemeFilesManifest(distDir: string): string {
  * ├── nodeget-theme.json
  * ├── nodeget-theme-files.json
  * ├── preview.png
- * └── dist/
+ * └── built files
  */
 function nodegetThemeZip(): Plugin {
   return {
@@ -117,7 +117,7 @@ function nodegetThemeZip(): Plugin {
             archive.file(previewPath, { name: manifestPreviewName })
         }
 
-        archive.directory(distDir, 'dist')
+        archive.directory(distDir, false)
         archive.finalize()
       })
     },
