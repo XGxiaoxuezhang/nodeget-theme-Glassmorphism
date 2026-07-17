@@ -8,7 +8,7 @@ function iso(ts: number): string { return ts ? new Date(ts).toISOString() : new 
 export async function nodegetGetPingRecords(taskId?: number, hours = 1, _maxCount = 500, uuid?: string): Promise<{ records: PingRecord[], tasks: PingTaskInfo[] }> {
   const end = Date.now()
   const start = end - Math.max(1, hours) * 3600000
-  const windowMs = 24 * 3600000
+  const windowMs = 3600000
   const windows: Array<{ from: number, to: number }> = []
   for (let from = start; from < end; from += windowMs)
     windows.push({ from, to: Math.min(end, from + windowMs) })
