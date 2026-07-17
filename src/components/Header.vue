@@ -54,14 +54,6 @@ function handleButtonClick(action: string) {
         target: appStore.themeMode,
       })
       break
-    case 'jumpToSetting':
-      void recordVisitorEvent({
-        event: 'admin_entry_click',
-        path: router.currentRoute.value.path,
-        route: String(router.currentRoute.value.name ?? ''),
-      })
-      location.href = '/admin'
-      break
   }
 }
 

@@ -50,7 +50,6 @@ class InitManager {
   private postFailureCount = 0
   private lastClientsFetchedAt = 0
   private isInitialized = false
-  private redirectingToAdmin = false
   private useWebSocket: boolean | null = null // 根据主题配置决定
   constructor(config: InitConfig = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -81,7 +80,7 @@ class InitManager {
     try {
       await this.runStartupRequests()
 
-      if (this.destroyed || this.redirectingToAdmin)
+      if (this.destroyed)
         return
 
       // 首次数据请求即使失败，也启动实时连接和轮询以便自动恢复。
@@ -110,7 +109,7 @@ class InitManager {
       this.fetchNodesData(),
     ])
 
-    if (this.destroyed || this.redirectingToAdmin)
+    if (this.destroyed)
       return false
 
     const nodesAvailable = nodesResult.status === 'fulfilled'
@@ -130,11 +129,11 @@ class InitManager {
    * 重新执行启动请求，不重复创建轮询定时器或 WebSocket 监听。
    */
   async retry(): Promise<boolean> {
-    if (this.destroyed || this.redirectingToAdmin)
+    if (this.destroyed)
       return false
 
     const recovered = await this.runStartupRequests()
-    if (!this.isInitialized && !this.destroyed && !this.redirectingToAdmin) {
+    if (!this.isInitialized && !this.destroyed) {
       this.startWebSocketAndPolling()
       this.isInitialized = true
     }
@@ -159,15 +158,6 @@ class InitManager {
         return
       }
       catch (error) {
-        if (error instanceof RpcError && error.code === 401) {
-          console.warn('[InitManager] Private site detected, redirecting to /admin')
-          this.redirectingToAdmin = true
-          this.appStore.updateLoginState(false)
-          this.appStore.loading = false
-          location.href = '/admin'
-          return
-        }
-
         lastError = error
         if (attempt < this.config.healthCheckAttempts && !this.destroyed) {
           const retryDelay = this.config.healthCheckRetryInterval * 2 ** (attempt - 1)

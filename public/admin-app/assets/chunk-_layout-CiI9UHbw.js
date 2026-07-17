@@ -1,1 +1,0 @@
-import{u as t,O as o}from"./entry-index-Cgldywvm.js";import{p as r}from"./chunk-flex-6mI6ctXk.js";import"./chunk-layout.props-CVBtiy8b.js";function p(){return t.jsx(r,{direction:"column",gap:"3",className:"p-0 md:p-4",children:t.jsx(o,{})})}export{p as default};
