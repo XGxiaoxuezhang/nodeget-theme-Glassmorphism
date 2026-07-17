@@ -385,51 +385,6 @@ const mergedData = computed(() => {
   if (!data.length)
     return []
 
-  const taskList = tasks.value
-
-  const taskIntervals = taskList
-    .map(t => t.interval)
-    .filter((v): v is number => typeof v === 'number' && v > 0)
-
-  const fallbackIntervalSec = taskIntervals.length ? Math.min(...taskIntervals) : 60
-  const toleranceMs = Math.min(
-    6000,
-    Math.max(800, Math.floor(fallbackIntervalSec * 1000 * 0.25)),
-  )
-
-  const grouped: Map<number, Record<string, unknown>> = new Map()
-  const anchors: number[] = []
-
-  for (const rec of data) {
-    const ts = dayjs(rec.time).valueOf()
-    let anchor: number | null = null
-
-    for (let index = anchors.length - 1; index >= 0; index--) {
-      const a = anchors[index]
-      if (a === undefined || ts - a > toleranceMs)
-        break
-      if (Math.abs(a - ts) <= toleranceMs) {
-        anchor = a
-        break
-      }
-    }
-
-    const useTs = anchor ?? ts
-    if (!grouped.has(useTs)) {
-      grouped.set(useTs, { time: dayjs(useTs).toISOString() })
-      if (anchor === null) {
-        anchors.push(useTs)
-      }
-    }
-
-    const group = grouped.get(useTs)!
-    group[rec.task_id] = rec.value < 0 ? null : rec.value
-  }
-
-  const merged = Array.from(grouped.values()).sort(
-    (a, b) => dayjs(a.time as string).valueOf() - dayjs(b.time as string).valueOf(),
-  )
-
   const range = appliedCustomRange.value
   const fromTs = isCustomRange.value && range
     ? range.start.valueOf()
@@ -437,18 +392,35 @@ const mergedData = computed(() => {
   const toTs = isCustomRange.value && range
     ? range.end.valueOf()
     : Date.now()
-  const visible = merged.filter((item) => {
-    const timestamp = dayjs(item.time as string).valueOf()
-    return timestamp >= fromTs && timestamp <= toTs
-  })
+  const hours = Math.max(1, (toTs - fromTs) / 3600_000)
+  const sampleIntervalMs = hours <= 6
+    ? 60_000
+    : hours <= 120 ? 15 * 60_000 : 3600_000
 
-  // Keep the requested range on the axis. Missing historical task data must
-  // stay visibly blank instead of shifting the chart window to the last sample.
-  return [
-    { time: dayjs(fromTs).toISOString() },
-    ...visible,
-    { time: dayjs(toTs).toISOString() },
-  ]
+  const samples = new Map<string, { taskId: number, timestamp: number, total: number, count: number }>()
+  for (const rec of data) {
+    const timestamp = dayjs(rec.time).valueOf()
+    if (timestamp < fromTs || timestamp > toTs || rec.value < 0)
+      continue
+    const bucket = fromTs + Math.floor((timestamp - fromTs) / sampleIntervalMs) * sampleIntervalMs
+    const key = `${rec.task_id}:${bucket}`
+    const sample = samples.get(key) ?? { taskId: rec.task_id, timestamp: bucket, total: 0, count: 0 }
+    sample.total += rec.value
+    sample.count += 1
+    samples.set(key, sample)
+  }
+
+  const grouped: Record<string, unknown>[] = []
+  for (let timestamp = fromTs; timestamp <= toTs; timestamp += sampleIntervalMs) {
+    const row: Record<string, unknown> = { time: dayjs(timestamp).toISOString() }
+    for (const task of tasks.value) {
+      const sample = samples.get(`${task.id}:${timestamp}`)
+      row[task.id] = sample ? sample.total / sample.count : null
+    }
+    grouped.push(row)
+  }
+
+  return grouped
 })
 
 const chartData = computed(() => {
