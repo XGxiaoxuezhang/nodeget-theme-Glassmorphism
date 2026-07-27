@@ -66,7 +66,7 @@ class NodeGetRpcClient {
     await this.ready
   }
 
-  async call<T>(method: string, params: Record<string, unknown> = {}, timeout = 20000): Promise<T> {
+  async call<T>(method: string, params: Record<string, unknown> = {}, timeout = 120000): Promise<T> {
     await this.connect()
     const id = ++this.id
     const payload = { jsonrpc: '2.0', method, params: { token: this.entry.token, ...params }, id }
